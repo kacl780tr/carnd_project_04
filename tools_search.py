@@ -108,7 +108,7 @@ class PathFunctionBuilder(object):
 	"""
 	Object to manage the process of extracting lane line paths from an image
 	"""
-	def __init__(self, slice_fraction=0.10, kernel=50, margin=100, decay=0.1):
+	def __init__(self, slice_fraction=0.10, kernel=50, margin=100, decay=0.5):
 		self.slice_fraction = slice_fraction
 		self.kernel = kernel
 		self.margin = margin
@@ -222,7 +222,7 @@ def make_linepath_active(slices, coords, anchor_function=None, kernel=50, margin
 	N = slices[0].shape[0]
 	indx = np.linspace(0, N - 1, N)
 	indx2 = np.square(indx)
-	decay_rate = -3.0*np.abs(decay)													# ensure decay < 0
+	decay_rate = -np.abs(decay)														# ensure decay < 0
 	for slc, ypos in zip(reversed(slices), reversed(coords)):
 		conv = np.convolve(window, slc, mode="same")
 		conv /= (np.sum(conv) + np.spacing(1.0)) 

@@ -219,3 +219,24 @@ def make_line_blend(group, shape, beta):
 		return [[mean_x_lo, y_lo, mean_x_hi, y_hi]]		# single blended line spanning coverage zone
 	return []											# empty list if group empty or only horizontal lines
 
+
+def verify_region(region, template, tolerance=0.10):
+	"""
+	Test a region against a known-good template
+	param: region: to be verified
+	param: template: a (hopefully) known-good template region
+	param: tolerance: the allowable departure from the template
+	return: True is region passes tests, False otherwise
+	"""
+	assert region.shape[0] == 4, "Invalid region"
+	assert template.shape[0] == 4, "Invalid template"
+	for i in range(4):
+		dr = 0
+		dt = 0
+		for j in range(2):
+			dr += (region[(i + 1) % 4][j] - region[i][j])**2
+			dt += (template[(i + 1) % 4][j] - template[i][j])**2
+		dr = np.sqrt(dr)
+		dt = np.sqrt(dt)
+		if 2.0*np.abs(1.0 - dr/(dt + np.spacing(10.0))) > tolerance: return False	# apply to each line, rather than aggregate
+	return True

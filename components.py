@@ -15,7 +15,7 @@ class Region(object):
 		self.__source = source
 		self.__target = target
 		self.__shape = shape
-		self.__transform = tp.Perspective(self.__source, self.__target)
+		self.__transform = tp.Perspective(self.__source, self.__target) # create perspective transformation
 
 	def get_source(self):
 		return self.__source
@@ -36,6 +36,9 @@ class Region(object):
 		ti.draw_linepath(image, dp, color=color, linewidth=linewidth)
 
 	def anchor(self):
+		"""
+		Extract and return an anchor 2-tuple from the target region
+		"""
 		return (self.__target[0][0], self.__target[-1][0])
 
 	
@@ -77,6 +80,12 @@ class RegionBuilder(object):
 		lines = tr.make_line_blend(lines_lhs, shape, self.inter_beta) + tr.make_line_blend(lines_rhs, shape, self.inter_beta)
 		return lines
 
+	def __sanity_check(self, region):
+		if self.previous is not None:
+			return tr.verify_region(region, self.previous.get_source())
+		else:
+			return True
+
 	def __make_focus_main(self, frame):
 		frame_gray = self.__scaler.make_scaled(frame)
 		frame_blur = ti.make_gaussian_blur(frame_gray, kernelsize=self.kernel_gauss)
@@ -113,8 +122,11 @@ class RegionBuilder(object):
 		final = self.__blend_lines(lines_lhs, lines_rhs, frame_focus.shape)
 		if len(final) == 2:		# okay, we found enough lines
 			reg_src = tr.make_region_from_lines(final)
-			reg_tgt = tr.make_target_region(frame_focus.shape, reg_src, self.target_beta, self.target_delta)
-			return Region(reg_src, reg_tgt, frame_focus.shape)
+			if self.__sanity_check(reg_src):
+				reg_tgt = tr.make_target_region(frame_focus.shape, reg_src, self.target_beta, self.target_delta)
+				return Region(reg_src, reg_tgt, frame_focus.shape)
+			else:
+				return self.previous
 		else:
 			if self.previous is not None:
 				return self.previous			# assume the road hasn't changed too much

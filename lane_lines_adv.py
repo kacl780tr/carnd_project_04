@@ -38,10 +38,12 @@ class TraceDump(pipeline.TraceHandler):
 		self.__indexed = indexed
 		self.__index = -1
 
-	def __make_path(self, base):
+	def __make_path(self, base, step=None):
 		rt = "tr_"
 		if self.__indexed:
-			rt += "{0:03}_".format(self.__index)
+			rt += "{0:04}_".format(self.__index)
+		if step is not None:
+			rt += "{0:02}_".format(step)
 		rt += base
 		pth = os.path.join(self.__target, rt) 
 		return pth + os.path.extsep + self.__extention
@@ -55,13 +57,13 @@ class TraceDump(pipeline.TraceHandler):
 	def run(self, trace):
 		self.__index += 1							# increment index
 		if self.__full:
-			for img, lbl in trace:
-				fn = self.__make_path(lbl)
+			for i, (img, lbl) in enumerate(trace):
+				fn = self.__make_path(lbl, i)
 				cmap = self.__make_cmap(img)
 				mpimg.imsave(fn, img, cmap=cmap)	# skimage doesn't seem to do grayscale easily...
 		elif len(trace) > 1:						# only save first (raw) and last (final)
-			for img, lbl in [trace[0], trace[-1]]:
-				fn = self.__make_path(lbl)
+			for i, (img, lbl) in enumerate([trace[0], trace[-1]]):
+				fn = self.__make_path(lbl, i)
 				cmap = self.__make_cmap(img)
 				mpimg.imsave(fn, img, cmap=cmap)
 		elif len(trace) == 1:
@@ -109,6 +111,15 @@ def run_video_test(dir_source, dir_target):
 			pipe_main.reset_pipeline()								# reset pipeline for next video
 
 
+def run_video_clip(path_source, path_target, clip=None):
+	assert clip is not None, "Start and end times for clip are required"
+	print("Processing clip from {}, {}...".format(path_source, clip))
+	vid_source = VideoFileClip(path_source)
+	vid_clip = vid_source.subclip(clip[0], clip[1])
+	vid_result = vid_clip.fl_image(pipe_main.process)
+	vid_result.write_videofile(path_target, audio=False)
+
+
 def run_calibration_test():
 	fileglob = "./camera_cal/calibration*.jpg"
 	filesave = "./calibration.p"
@@ -122,4 +133,5 @@ if __name__ == "__main__":
 	#run_calibration_test()
 	#run_image_test("./test_images", "./test_image_out")
 	run_video_test("./test_videos", "./test_video_out")
+	#run_video_clip("./test_videos/project_video.mp4", "./test_videos_out/project_video.mp4", clip=(41,43))
 
